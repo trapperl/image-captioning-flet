@@ -1,1 +1,4 @@
 # requirements.txt
+flet
+openai
+python-dotenv
