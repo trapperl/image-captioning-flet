@@ -40,12 +40,16 @@ def main(page: ft.Page):
     page.bgcolor = ft.Colors.BLACK
 
     # Main image display
-    image_display = ft.Image(
-        src="https://via.placeholder.com/300",
-        width=400,
-        height=400,
-        fit=ft.ImageFit.CONTAIN,
-        border_radius=ft.border_radius.all(10),
+    image_display = ft.Container(
+        content=ft.Image(
+            src="https://via.placeholder.com/300",
+            width=1000,
+            height=1000,
+            fit=ft.ImageFit.CONTAIN,
+            expand=True,
+        ),
+        border_radius=10,
+        expand=True,
     )
 
     # Caption input area (set to same width as the image display)
@@ -54,7 +58,7 @@ def main(page: ft.Page):
         multiline=True,
         min_lines=3,
         max_lines=5,
-        width=400,
+        expand=True,  # Allow the text field to expand with its container
         filled=True,
         fill_color=ft.Colors.BLACK,
         border_color=ft.Colors.GREY,
@@ -201,13 +205,16 @@ def main(page: ft.Page):
         spacing=10,
     )
 
-    caption_column = ft.Column(
-        controls=[
-            caption_input,
-            caption_actions_row,
-        ],
-        spacing=10,
-        horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+    caption_column = ft.Container(
+        content=ft.Column(
+            controls=[
+                caption_input,
+                caption_actions_row,
+            ],
+            spacing=10,
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+        ),
+        padding=10,
     )
 
     async def generate_caption_from_openai(image_path, prompt, page, api_key):
@@ -383,7 +390,7 @@ def main(page: ft.Page):
         def inner_click(e):
             nonlocal current_image_path
             current_image_path = image_path
-            image_display.src = image_path
+            image_display.content.src = image_path
             caption_input.value = load_caption(image_path)
             page.update()
             print(f"Thumbnail clicked, current_image_path set to: {image_path}")
@@ -422,7 +429,7 @@ def main(page: ft.Page):
                     )
                 if image_files:
                     current_image_path = image_files[0]
-                    image_display.src = image_files[0]
+                    image_display.content.src = image_files[0]
                     caption_input.value = load_caption(image_files[0])
                     print(f"Setting current_image_path to first image: {current_image_path}")
                 page.update()
@@ -467,21 +474,6 @@ def main(page: ft.Page):
     )
 
     # Central content: image display, caption input area, settings (moved below the caption area), and folder info.
-    central_content = ft.Container(
-        content=ft.Column(
-            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
-            scroll=ft.ScrollMode.AUTO,
-            controls=[
-                image_display,
-                caption_column,
-                settings_column,
-                selected_folder_path,
-            ],
-        ),
-        expand=True,
-        bgcolor=ft.Colors.BLACK,
-        padding=20,
-    )
 
     # Right column:
     tags_scrollable_container = ft.Column(
@@ -509,8 +501,45 @@ def main(page: ft.Page):
         border=ft.border.only(left=ft.BorderSide(1, ft.Colors.OUTLINE))
     )
 
-    # Main layout
-    main_row = ft.Row(
+    # Create bottom controls container
+    bottom_controls = ft.Container(
+        content=ft.Column([
+            ft.Container(
+                content=ft.Column([
+                    caption_column,
+                    settings_column,
+                    selected_folder_path,
+                ]),
+                padding=10,
+            ),
+            select_folder_button
+        ]),
+        bgcolor=ft.colors.BLACK,
+        padding=10,
+        border=ft.border.only(top=ft.BorderSide(1, ft.colors.OUTLINE))
+    )
+
+    # Create central content with image
+    central_content = ft.Container(
+        content=ft.Column(
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+            controls=[
+                ft.Container(
+                    content=image_display,
+                    expand=True,
+                    alignment=ft.alignment.center,
+                ),
+            ],
+            expand=True,
+            alignment=ft.MainAxisAlignment.CENTER,
+        ),
+        expand=True,
+        bgcolor=ft.Colors.BLACK,
+        padding=20,
+    )
+
+    # Main layout with thumbnails, central content, and tags
+    main_content = ft.Row(
         controls=[
             image_thumbnails_container,
             central_content,
@@ -523,14 +552,17 @@ def main(page: ft.Page):
 
     page.window.min_width = MIN_THUMBNAILS_WIDTH + MIN_CENTRAL_WIDTH + MIN_TAG_MANAGEMENT_WIDTH + 40
 
+    # Add to page with main content and fixed bottom controls
     page.add(
         ft.Container(
             content=ft.Column([
-                main_row,
-                select_folder_button
+                ft.Container(
+                    content=main_content,
+                    expand=True
+                ),
+                bottom_controls
             ]),
             expand=True,
-            padding=10
         )
     )
 
